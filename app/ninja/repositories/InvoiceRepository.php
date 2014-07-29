@@ -154,30 +154,30 @@ class InvoiceRepository
 	{
 		$contact = (array) $input->client->contacts[0];
 		$rules = ['email' => 'required|email'];
-    	$validator = \Validator::make($contact, $rules);
+  	$validator = \Validator::make($contact, $rules);
 
-    	if ($validator->fails())
-    	{
-    		return $validator;
-    	}
+  	if ($validator->fails())
+  	{
+  		return $validator;
+  	}
 
-    	$invoice = (array) $input;
-    	$invoiceId = isset($invoice['public_id']) && $invoice['public_id'] ? Invoice::getPrivateId($invoice['public_id']) : null;
-    	$rules = ['invoice_number' => 'required|unique:invoices,invoice_number,' . $invoiceId . ',id,account_id,' . \Auth::user()->account_id];    	
+  	$invoice = (array) $input;
+  	$invoiceId = isset($invoice['public_id']) && $invoice['public_id'] ? Invoice::getPrivateId($invoice['public_id']) : null;
+  	$rules = ['invoice_number' => 'required|unique:invoices,invoice_number,' . $invoiceId . ',id,account_id,' . \Auth::user()->account_id];    	
 
-    	if ($invoice['is_recurring'] && $invoice['start_date'] && $invoice['end_date'])
-    	{
-    		$rules['end_date'] = 'after:' . $invoice['start_date'];
-    	}
+  	if ($invoice['is_recurring'] && $invoice['start_date'] && $invoice['end_date'])
+  	{
+  		$rules['end_date'] = 'after:' . $invoice['start_date'];
+  	}
 
-    	$validator = \Validator::make($invoice, $rules);
+  	$validator = \Validator::make($invoice, $rules);
 
-    	if ($validator->fails())
-    	{
-    		return $validator;
-    	}
+  	if ($validator->fails())
+  	{
+  		return $validator;
+  	}
 
-    	return false;
+  	return false;
 	}
 
 	public function save($publicId, $data, $entityType)
@@ -237,7 +237,7 @@ class InvoiceRepository
 		
 		foreach ($data['invoice_items'] as $item) 
 		{
-			if (!$item->cost && !$item->qty && !$item->product_key && !$item->notes)
+			if (!$item->cost && !$item->product_key && !$item->notes)
 			{
 				continue;
 			}
@@ -261,8 +261,29 @@ class InvoiceRepository
 			$total *= (100 - $invoice->discount) / 100;
 		}
 
+    $invoice->custom_value1 = round($data['custom_value1'], 2);
+    $invoice->custom_value2 = round($data['custom_value2'], 2);
+    $invoice->custom_taxes1 = $data['custom_taxes1'] ? true : false;
+    $invoice->custom_taxes2 = $data['custom_taxes2'] ? true : false;
+
+    // custom fields charged taxes
+    if ($invoice->custom_value1 && $invoice->custom_taxes1) {
+      $total += $invoice->custom_value1;
+    }
+    if ($invoice->custom_value2 && $invoice->custom_taxes2) {
+      $total += $invoice->custom_value2;
+    }
+
 		$total += $total * $invoice->tax_rate / 100;
     $total = round($total, 2);
+
+    // custom fields not charged taxes
+    if ($invoice->custom_value1 && !$invoice->custom_taxes1) {
+      $total += $invoice->custom_value1;
+    }
+    if ($invoice->custom_value2 && !$invoice->custom_taxes2) {
+      $total += $invoice->custom_value2;
+    }
 
     if ($publicId)    
     {
@@ -280,7 +301,7 @@ class InvoiceRepository
     
     foreach ($data['invoice_items'] as $item) 
     {
-      if (!$item->cost && !$item->qty && !$item->product_key && !$item->notes)
+      if (!$item->cost && !$item->product_key && !$item->notes)
       {
         continue;
       }

@@ -1,5 +1,6 @@
 <?php
 
+
 /*
 |--------------------------------------------------------------------------
 | Application Routes
@@ -21,6 +22,7 @@
 //dd(App::environment());
 //dd(gethostname());
 //Log::error('test');
+
 
 Route::get('/', 'HomeController@showIndex');
 Route::get('/rocksteady', 'HomeController@showIndex');
@@ -57,7 +59,7 @@ Route::post('login', 'UserController@do_login');
 Route::get('user/confirm/{code}', 'UserController@confirm');
 Route::get('forgot_password', 'UserController@forgot_password');
 Route::post('forgot_password', 'UserController@do_forgot_password');
-Route::get('user/reset/{token}', 'UserController@reset_password');
+Route::get('user/reset/{token?}', 'UserController@reset_password');
 Route::post('user/reset', 'UserController@do_reset_password');
 Route::get('logout', 'UserController@logout');
 
@@ -67,17 +69,14 @@ Route::group(array('before' => 'auth'), function()
   Route::get('dashboard', 'DashboardController@index');
   Route::get('view_archive/{entity_type}/{visible}', 'AccountController@setTrashVisible');
   Route::get('force_inline_pdf', 'UserController@forcePDFJS');
+
+  Route::get('api/users', array('as'=>'api.users', 'uses'=>'UserController@getDatatable'));
+  Route::resource('users', 'UserController');
+  Route::post('users/delete', 'UserController@delete');
   
   Route::get('api/products', array('as'=>'api.products', 'uses'=>'ProductController@getDatatable'));
   Route::resource('products', 'ProductController');
   Route::get('products/{product_id}/archive', 'ProductController@archive');
-
-  /*
-  Route::get('company/products/{product_id}/edit', 'ProductController@showProduct');
-  Route::get('company/products/{product_id}/archive', 'ProductController@archiveProduct');
-  Route::get('company/products/create', 'ProductController@createProduct');
-  Route::post('company/products/{product_id?}', 'AccountController@saveProduct');
-  */
 
   Route::get('company/advanced_settings/chart_builder', 'ReportController@report');
   Route::post('company/advanced_settings/chart_builder', 'ReportController@report');
@@ -126,12 +125,20 @@ Route::group(array('before' => 'auth'), function()
 	Route::post('credits/bulk', 'CreditController@bulk');	
 });
 
-// Route group for API versioning
+// Route group for API
 Route::group(array('prefix' => 'api/v1', 'before' => 'auth.basic'), function()
 {
-    Route::resource('clients', 'ClientApiController');
+  Route::resource('ping', 'ClientApiController@ping');
+  Route::resource('clients', 'ClientApiController');
+  Route::resource('invoices', 'InvoiceApiController');
+  Route::resource('quotes', 'QuoteApiController');
+  Route::resource('payments', 'PaymentApiController');
 });
 
+Route::group(array('before' => 'auth.basic'), function()
+{
+  Route::post('api/hooks', 'IntegrationController@subscribe');
+});
 
 define('CONTACT_EMAIL', 'contact@invoiceninja.com');
 define('CONTACT_NAME', 'Invoice Ninja');
@@ -163,14 +170,16 @@ define('ACCOUNT_ADVANCED_SETTINGS', 'advanced_settings');
 define('ACCOUNT_CUSTOM_FIELDS', 'custom_fields');
 define('ACCOUNT_INVOICE_DESIGN', 'invoice_design');
 define('ACCOUNT_CHART_BUILDER', 'chart_builder');
-
+define('ACCOUNT_USER_MANAGEMENT', 'user_management');
+                
 
 define('DEFAULT_INVOICE_NUMBER', '0001');
 define('RECENTLY_VIEWED_LIMIT', 8);
 define('LOGGED_ERROR_LIMIT', 100);
 define('RANDOM_KEY_LENGTH', 32);
 define('MAX_NUM_CLIENTS', 500);
-define('MAX_NUM_CLIENTS_PRO', 5000);
+define('MAX_NUM_CLIENTS_PRO', 20000);
+define('MAX_NUM_USERS', 5);
 
 define('INVOICE_STATUS_DRAFT', 1);
 define('INVOICE_STATUS_SENT', 2);
@@ -216,12 +225,17 @@ define('GATEWAY_PAYPAL_EXPRESS', 17);
 define('GATEWAY_BEANSTREAM', 29);
 define('GATEWAY_PSIGATE', 30);
 
+define('EVENT_CREATE_CLIENT', 1);
+define('EVENT_CREATE_INVOICE', 2);
+define('EVENT_CREATE_QUOTE', 3);
+define('EVENT_CREATE_PAYMENT', 4);
+
 define('REQUESTED_PRO_PLAN', 'REQUESTED_PRO_PLAN');
 define('NINJA_ACCOUNT_KEY', 'zg4ylmzDkdkPOT8yoKQw9LTWaoZJx79h');
 define('NINJA_GATEWAY_ID', GATEWAY_AUTHORIZE_NET);
 define('NINJA_GATEWAY_CONFIG', '{"apiLoginId":"626vWcD5","transactionKey":"4bn26TgL9r4Br4qJ","testMode":"","developerMode":""}');
 define('NINJA_URL', 'https://www.invoiceninja.com');
-define('NINJA_VERSION', '1.2.2');
+define('NINJA_VERSION', '1.3.1');
 
 define('PRO_PLAN_PRICE', 50);
 define('LICENSE_PRICE', 30);
@@ -380,4 +394,6 @@ if (Auth::check() && Auth::user()->id === 1)
   Auth::loginUsingId(1);
 }
 */
+
+
 

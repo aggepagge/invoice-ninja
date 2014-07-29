@@ -111,6 +111,7 @@
 
 	{{ Former::hidden('data')->data_bind("value: ko.mapping.toJSON(model)") }}	
 
+	<div class="table-responsive">
 	<table class="table invoice-table" style="margin-bottom: 0px !important">
 		<thead>
 			<tr>
@@ -118,7 +119,7 @@
 				<th style="min-width:160px">{{ trans('texts.item') }}</th>
 				<th style="width:100%">{{ trans('texts.description') }}</th>
 				<th style="min-width:120px">{{ trans('texts.unit_cost') }}</th>
-				<th style="min-width:120px">{{ trans('texts.quantity') }}</th>
+				<th style="{{ $account->hide_quantity ? 'display:none' : 'min-width:120px' }}">{{ trans('texts.quantity') }}</th>
 				<th style="min-width:120px;display:none;" data-bind="visible: $root.invoice_item_taxes.show">{{ trans('texts.tax') }}</th>
 				<th style="min-width:120px;">{{ trans('texts.line_total') }}</th>
 				<th style="min-width:32px;" class="hide-border"></th>
@@ -139,7 +140,7 @@
 				<td>
 					<input onkeyup="onItemChange()" data-bind="value: prettyCost, valueUpdate: 'afterkeydown'" style="text-align: right" class="form-control"//>
 				</td>
-				<td>
+				<td style="{{ $account->hide_quantity ? 'display:none' : '' }}">
 					<input onkeyup="onItemChange()" data-bind="value: prettyQty, valueUpdate: 'afterkeydown'" style="text-align: right" class="form-control"//>
 				</td>
 				<td style="display:none;" data-bind="visible: $root.invoice_item_taxes.show">
@@ -153,51 +154,101 @@
 				</td>
 			</tr>
 		</tbody>
+
+
 		<tfoot>
 			<tr>
 				<td class="hide-border"/>
-				<td colspan="2" rowspan="5">
+				<td colspan="2" rowspan="6" style="vertical-align:top">
 					<br/>
 					{{ Former::textarea('public_notes')->data_bind("value: wrapped_notes, valueUpdate: 'afterkeydown'")
-					->label(false)->placeholder(trans('texts.note_to_client'))->style('width: 520px; resize: none') }}			
+					->label(false)->placeholder(trans('texts.note_to_client'))->style('resize: none') }}			
 					{{ Former::textarea('terms')->data_bind("value: wrapped_terms, valueUpdate: 'afterkeydown'")
-					->label(false)->placeholder(trans('texts.invoice_terms'))->style('width: 520px; resize: none')
+					->label(false)->placeholder(trans('texts.invoice_terms'))->style('resize: none')
 					->addGroupClass('less-space-bottom') }}
 					<label class="checkbox" style="width: 200px">
 						<input type="checkbox" style="width: 24px" data-bind="checked: set_default_terms"/>{{ trans('texts.save_as_default_terms') }}
 					</label>
 				</td>
 				<td style="display:none" data-bind="visible: $root.invoice_item_taxes.show"/>	        	
-				<td colspan="2">{{ trans('texts.subtotal') }}</td>
+				<td colspan="{{ $account->hide_quantity ? 1 : 2 }}">{{ trans('texts.subtotal') }}</td>
 				<td style="text-align: right"><span data-bind="text: totals.subtotal"/></td>
 			</tr>
+
 			<tr style="display:none" data-bind="visible: discount() > 0">
 				<td class="hide-border" colspan="3"/>
 				<td style="display:none" class="hide-border" data-bind="visible: $root.invoice_item_taxes.show"/>
-				<td colspan="2">{{ trans('texts.discount') }}</td>
+				<td colspan="{{ $account->hide_quantity ? 1 : 2 }}">{{ trans('texts.discount') }}</td>
 				<td style="text-align: right"><span data-bind="text: totals.discounted"/></td>
 			</tr>
+
+			@if (($account->custom_invoice_label1 || ($invoice && floatval($invoice->custom_value1)) != 0) && $account->custom_invoice_taxes1)
+				<tr>
+					<td class="hide-border" colspan="3"/>
+					<td style="display:none" class="hide-border" data-bind="visible: $root.invoice_item_taxes.show"/>
+					<td colspan="{{ $account->hide_quantity ? 1 : 2 }}">{{ $account->custom_invoice_label1 }}</td>
+					<td style="text-align: right;padding-right: 28px" colspan="2"><input class="form-control" data-bind="value: custom_value1, valueUpdate: 'afterkeydown'"/></td>
+				</tr>
+			@endif
+
+			@if (($account->custom_invoice_label2 || ($invoice && floatval($invoice->custom_value2)) != 0) && $account->custom_invoice_taxes2)
+				<tr>
+					<td class="hide-border" colspan="3"/>
+					<td style="display:none" class="hide-border" data-bind="visible: $root.invoice_item_taxes.show"/>
+					<td colspan="{{ $account->hide_quantity ? 1 : 2 }}">{{ $account->custom_invoice_label2 }}</td>
+					<td style="text-align: right;padding-right: 28px" colspan="2"><input class="form-control" data-bind="value: custom_value2, valueUpdate: 'afterkeydown'"/></td>
+				</tr>
+			@endif
+
 			<tr style="display:none" data-bind="visible: $root.invoice_taxes.show">
 				<td class="hide-border" colspan="3"/>
 				<td style="display:none" class="hide-border" data-bind="visible: $root.invoice_item_taxes.show"/>	        	
-				<td>{{ trans('texts.tax') }}</td>
+				@if (!$account->hide_quantity)
+					<td>{{ trans('texts.tax') }}</td>
+				@endif
 				<td style="min-width:120px"><select class="form-control" style="width:100%" data-bind="value: tax, options: $root.tax_rates, optionsText: 'displayName'"></select></td>
 				<td style="text-align: right"><span data-bind="text: totals.taxAmount"/></td>
 			</tr>
+
+			@if (($account->custom_invoice_label1 || ($invoice && floatval($invoice->custom_value1)) != 0) && !$account->custom_invoice_taxes1)
+				<tr>
+					<td class="hide-border" colspan="3"/>
+					<td style="display:none" class="hide-border" data-bind="visible: $root.invoice_item_taxes.show"/>
+					<td colspan="{{ $account->hide_quantity ? 1 : 2 }}">{{ $account->custom_invoice_label1 }}</td>
+					<td style="text-align: right;padding-right: 28px" colspan="2"><input class="form-control" data-bind="value: custom_value1, valueUpdate: 'afterkeydown'"/></td>
+				</tr>
+			@endif
+
+			@if (($account->custom_invoice_label2 || ($invoice && floatval($invoice->custom_value2)) != 0) && !$account->custom_invoice_taxes2)
+				<tr>
+					<td class="hide-border" colspan="3"/>
+					<td style="display:none" class="hide-border" data-bind="visible: $root.invoice_item_taxes.show"/>
+					<td colspan="{{ $account->hide_quantity ? 1 : 2 }}">{{ $account->custom_invoice_label2 }}</td>
+					<td style="text-align: right;padding-right: 28px" colspan="2"><input class="form-control" data-bind="value: custom_value2, valueUpdate: 'afterkeydown'"/></td>
+				</tr>
+			@endif
+
+			@if (!$account->hide_paid_to_date)
+				<tr>
+					<td class="hide-border" colspan="3"/>
+					<td style="display:none" class="hide-border" data-bind="visible: $root.invoice_item_taxes.show"/>	        	
+					<td colspan="{{ $account->hide_quantity ? 1 : 2 }}">{{ trans('texts.paid_to_date') }}</td>
+					<td style="text-align: right" data-bind="text: totals.paidToDate"></td>
+				</tr>	        
+			@endif
+
 			<tr>
 				<td class="hide-border" colspan="3"/>
 				<td style="display:none" class="hide-border" data-bind="visible: $root.invoice_item_taxes.show"/>	        	
-				<td colspan="2">{{ trans('texts.paid_to_date') }}</td>
-				<td style="text-align: right" data-bind="text: totals.paidToDate"></td>
-			</tr>	        
-			<tr>
-				<td class="hide-border" colspan="3"/>
-				<td style="display:none" class="hide-border" data-bind="visible: $root.invoice_item_taxes.show"/>	        	
-				<td colspan="2"><b>{{ trans($entityType == ENTITY_INVOICE ? 'texts.balance_due' : 'texts.total') }}</b></td>
+				<td colspan="{{ $account->hide_quantity ? 1 : 2 }}"><b>{{ trans($entityType == ENTITY_INVOICE ? 'texts.balance_due' : 'texts.total') }}</b></td>
 				<td style="text-align: right"><span data-bind="text: totals.total"/></td>
 			</tr>
+
 		</tfoot>
+
+
 	</table>
+	</div>
 
 	<p>&nbsp;</p>
 	<div class="form-actions">
@@ -279,7 +330,7 @@
 	@endif
 
 	<div class="modal fade" id="clientModal" tabindex="-1" role="dialog" aria-labelledby="clientModalLabel" aria-hidden="true">
-	  <div class="modal-dialog" style="min-width:1000px">
+	  <div class="modal-dialog large-dialog">
 	    <div class="modal-content">
 	      <div class="modal-header">
 	        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
@@ -368,7 +419,7 @@
 	</div>
 
 	<div class="modal fade" id="taxModal" tabindex="-1" role="dialog" aria-labelledby="taxModalLabel" aria-hidden="true">
-	  <div class="modal-dialog" style="min-width:150px">
+	  <div class="modal-dialog">
 	    <div class="modal-content">
 	      <div class="modal-header">
 	        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
@@ -401,7 +452,7 @@
 				</tbody>
 			</table>
 			&nbsp;
-
+			
 			{{ Former::checkbox('invoice_taxes')->text(trans('texts.enable_invoice_tax'))
 				->label(trans('texts.settings'))->data_bind('checked: $root.invoice_taxes, enable: $root.tax_rates().length > 1') }}
 			{{ Former::checkbox('invoice_item_taxes')->text(trans('texts.enable_line_item_tax'))
@@ -510,7 +561,7 @@
 			}, 1);
 		});
 
-		@if ($client || $invoice)
+		@if ($client || $invoice || count($clients) == 0)
 			$('#invoice_number').focus();
 		@else
 			$('.client_select input.form-control').focus();			
@@ -965,9 +1016,7 @@
 
 			refreshPDF();
 			model.clientBackup = false;
-			$('#clientModal').modal('hide');			
-
-			$('#invoice_number').focus();
+			$('#clientModal').modal('hide');						
 		}		
 
 		self.clientLinkText = ko.computed(function() {
@@ -1015,6 +1064,11 @@
 		self.balance = ko.observable(0);
 		self.invoice_design_id = ko.observable({{ $account->invoice_design_id }});
 
+		self.custom_value1 = ko.observable(0);
+		self.custom_value2 = ko.observable(0);
+		self.custom_taxes1 = ko.observable(false);
+		self.custom_taxes2 = ko.observable(false);
+
 		self.mapping = {
 			'client': {
 		        create: function(options) {
@@ -1035,6 +1089,9 @@
 
 		self.addItem = function() {
 			var itemModel = new ItemModel();
+			@if ($account->hide_quantity)
+				itemModel.qty(1);
+			@endif
 			self.invoice_items.push(itemModel);	
 			applyComboboxListeners();			
 		}
@@ -1042,6 +1099,8 @@
 		if (data) {
 			ko.mapping.fromJS(data, self.mapping, self);			
 			self.is_recurring(parseInt(data.is_recurring));
+			self.is_recurring(parseInt(data.is_recurring) == 1);
+			self.is_recurring(parseInt(data.is_recurring) == 1);
 		} else {
 			self.addItem();
 		}
@@ -1123,12 +1182,24 @@
 		});
 
 		self.totals.taxAmount = ko.computed(function() {
-		    var total = self.totals.rawSubtotal();
+	    var total = self.totals.rawSubtotal();
 
-		    var discount = parseFloat(self.discount());
-		    if (discount > 0) {
-		    	total = roundToTwo(total * ((100 - discount)/100));
-		    }
+	    var discount = parseFloat(self.discount());
+	    if (discount > 0) {
+	    	total = roundToTwo(total * ((100 - discount)/100));
+	    }
+
+	    var customValue1 = roundToTwo(self.custom_value1());
+	    var customValue2 = roundToTwo(self.custom_value2());
+	    var customTaxes1 = self.custom_taxes1() == 1;
+	    var customTaxes2 = self.custom_taxes2() == 1;
+	    
+	    if (customValue1 && customTaxes1) {
+	    	total = NINJA.parseFloat(total) + customValue1;
+	    }
+	    if (customValue2 && customTaxes2) {
+	    	total = NINJA.parseFloat(total) + customValue2;
+	    }
 
 			var taxRate = parseFloat(self.tax_rate());
 			if (taxRate > 0) {
@@ -1156,11 +1227,30 @@
 	    	total = roundToTwo(total * ((100 - discount)/100));
 	    }
 
+	    var customValue1 = roundToTwo(self.custom_value1());
+	    var customValue2 = roundToTwo(self.custom_value2());
+	    var customTaxes1 = self.custom_taxes1() == 1;
+	    var customTaxes2 = self.custom_taxes2() == 1;
+	    
+	    if (customValue1 && customTaxes1) {
+	    	total = NINJA.parseFloat(total) + customValue1;
+	    }
+	    if (customValue2 && customTaxes2) {
+	    	total = NINJA.parseFloat(total) + customValue2;
+	    }
+
 			var taxRate = parseFloat(self.tax_rate());
 			if (taxRate > 0) {
     		total = NINJA.parseFloat(total) + roundToTwo((total * (taxRate/100)));
     	}        	
 
+	    if (customValue1 && !customTaxes1) {
+	    	total = NINJA.parseFloat(total) + customValue1;
+	    }
+	    if (customValue2 && !customTaxes2) {
+	    	total = NINJA.parseFloat(total) + customValue2;
+	    }
+	    
     	var paid = self.totals.rawPaidToDate();
     	if (paid > 0) {
     		total -= paid;
@@ -1426,7 +1516,7 @@
   	}
 
   	this.isEmpty = function() {
-  		return !self.product_key() && !self.notes() && !self.cost() && !self.qty();
+  		return !self.product_key() && !self.notes() && !self.cost() && (!self.qty() || {{ $account->hide_quantity ? 'true' : 'false' }});
   	}
 
   	this.onSelect = function(){              
@@ -1506,6 +1596,9 @@
 			}			
 			model.invoice().addItem();
 			//model.addTaxRate();			
+		@else 
+			model.invoice().custom_taxes1({{ $account->custom_invoice_taxes1 ? 'true' : 'false' }});
+			model.invoice().custom_taxes2({{ $account->custom_invoice_taxes2 ? 'true' : 'false' }});
 		@endif
                 // Add the first tax rate for new invoices
                 //if(model.invoice_taxes() && model.tax_rates().length > 0) {
@@ -1522,7 +1615,10 @@
 	}
 	onTaxRateChange();
 
+	// display blank instead of '0'
 	if (!model.invoice().discount()) model.invoice().discount('');
+	if (!model.invoice().custom_value1()) model.invoice().custom_value1('');
+	if (!model.invoice().custom_value2()) model.invoice().custom_value2('');
 
 	ko.applyBindings(model);	
 	onItemChange();

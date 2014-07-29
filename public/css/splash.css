@@ -86,12 +86,6 @@ text-align: center;
 }
 .form-control.with-icon {padding-left: 50px !important;}
     
-/* Responsive actions */
-
-.hidden-desktop {
-    display: none !important;
-}
-
 /* Navigation */
 
 .navbar {
@@ -286,7 +280,7 @@ a .cta:hover span {
     padding-right: 15px;
     position: relative;
     padding: 10px 35px 20px 35px;
-    height: 212px;
+    xheight: 212px;
     border-left: 1px dotted #ccc;
     margin-top: 100px;
     text-align: left;
@@ -814,10 +808,10 @@ footer.footer form#mad_mimi_signup_form input {
     
     /* Responsive actions */
     .hidden-desktop {
-    display: block !important;
+        display: block !important;
     }
     .hidden-phone {
-    display: none !important;
+        display: none !important;
     }
     
     /* Typo */
@@ -1336,4 +1330,14 @@ div.fb_iframe_widget > span {
 }
 .plans-table a .cta h2 span {
     background: #1e84a5;
+}
+
+@media (min-width: 992px) {
+   .hide-desktop {display: none !important;}
+}
+
+@media (max-width: 992px) {
+    .hide-phone {
+        display: none !important;
+    }    
 }

@@ -207,7 +207,7 @@ class Account extends Eloquent
   		'your_quote',
   		'quote_date',
   		'quote_number',
-  		'total'
+  		'total',
 		];
 
 		foreach ($fields as $field)
@@ -236,6 +236,10 @@ class Account extends Eloquent
 		{
 			return false;
 		}
+		else if ($datePaid == '2000-01-01')
+		{
+			return true;
+		}		
 
 		$today = new DateTime('now');
 		$datePaid = DateTime::createFromFormat('Y-m-d', $datePaid);		
@@ -244,4 +248,8 @@ class Account extends Eloquent
 		return $interval->y == 0;
 	}
 
+	public function getSubscription($eventId) 
+	{
+		return Subscription::where('account_id', '=', $this->id)->where('event_id', '=', $eventId)->first();
+	}
 }

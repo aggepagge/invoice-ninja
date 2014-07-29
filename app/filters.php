@@ -69,13 +69,17 @@ App::after(function($request, $response)
 
 Route::filter('auth', function()
 {
-    if (Auth::guest()) {
-      if(Utils::isNinja()) {
-          return Redirect::guest('/');
-      } else {
-          return Redirect::guest('/login');
-      }
+  if (Auth::guest()) 
+  {
+    if (Utils::isNinja() || Account::count() == 0)
+    {
+      return Redirect::guest('/');
+    } 
+    else 
+    {
+      return Redirect::guest('/login');
     }
+  }
 });
 
 
@@ -115,11 +119,11 @@ Route::filter('csrf', function()
 {
 	$token = Request::ajax() ? Request::header('X-CSRF-Token') : Input::get('_token');
 	
-   	if (Session::token() != $token) 
-   	{      
-      Session::flash('warning', trans('texts.session_expired'));   
+ 	if (Session::token() != $token) 
+ 	{      
+    Session::flash('warning', trans('texts.session_expired'));   
 
-   		return Redirect::to('/');
-			//throw new Illuminate\Session\TokenMismatchException;
-   	}
+ 		return Redirect::to('/');
+		//throw new Illuminate\Session\TokenMismatchException;
+ 	}
 });
